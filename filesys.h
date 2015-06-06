@@ -1,7 +1,7 @@
 ﻿#ifndef FILESYS_H
 #define FILESYS_H
 #include<stddef.h>
-#define DEVNAME "/dev/sdb1" //这里要修改成虚拟u盘
+#define DEVNAME "/home/totoro/Desktop/Lab4/Linux4/data"    //这里要修改成虚拟u盘
 /*
  * 下面这些暴力算的虽然正确，但其实不合法。
  * 我们从BootSector中可以读出整个FAT的参数。
@@ -9,14 +9,13 @@
  */
 #define DIR_ENTRY_SIZE 32
 #define SECTOR_SIZE 512
-#define CLUSTER_SIZE 512*4                         
-#define FAT_ONE_OFFSET 512                       
-#define FAT_TWO_OFFSET 512+250*512                       
-#define ROOTDIR_OFFSET 512+250*512+250*512+512                     
-#define DATA_OFFSET 512+250*512+250*512+512*32        
+#define CLUSTER_SIZE 512*4                        
+#define FAT_ONE_OFFSET 512   
+int FAT_TWO_OFFSET = -1;
+int ROOTDIR_OFFSET = -1;   
+int DATA_OFFSET = -1;
 
            
-
 /*属性位掩码*/
 #define ATTR_READONLY 0x01
 #define ATTR_HIDDEN 0x02

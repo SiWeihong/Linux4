@@ -38,7 +38,7 @@
  *打印启动项记录
  */
 void ScanBootSector()
-{
+{	
 	unsigned char buf[SECTOR_SIZE];
 	int ret,i;
 	//将BootSector读入缓冲区
@@ -55,13 +55,18 @@ void ScanBootSector()
 	bdptor.FATs = buf[0x10];
 	bdptor.RootDirEntries = RevByte(buf[0x11],buf[0x12]);    
 	bdptor.LogicSectors = RevByte(buf[0x13],buf[0x14]);
+	if(bdptor.LogicSectors == 0)
+		bdptor.LogicSectors=RevWord(buf[0x20],buf[0x21],buf[0x22],buf[0x23]);
 	bdptor.MediaType = buf[0x15];
 	bdptor.SectorsPerFAT = RevByte( buf[0x16],buf[0x17] );
 	bdptor.SectorsPerTrack = RevByte(buf[0x18],buf[0x19]);
 	bdptor.Heads = RevByte(buf[0x1a],buf[0x1b]);
 	bdptor.HiddenSectors = RevByte(buf[0x1c],buf[0x1d]);
-
 	
+	FAT_TWO_OFFSET = bdptor.BytesPerSector + bdptor.SectorsPerFAT * bdptor.BytesPerSector;
+        ROOTDIR_OFFSET = bdptor.BytesPerSector + bdptor.FATs * bdptor.SectorsPerFAT * bdptor.BytesPerSector;
+	DATA_OFFSET = bdptor.BytesPerSector + bdptor.FATs * bdptor.SectorsPerFAT * bdptor.BytesPerSector + DIR_ENTRY_SIZE*bdptor.RootDirEntries;
+
 	printf("Oem_name \t\t%s\n"
 		"BytesPerSector \t\t%d\n"
 		"SectorsPerCluster \t%d\n"
@@ -73,7 +78,11 @@ void ScanBootSector()
 		"SectorPerFAT \t\t%d\n"
 		"SectorPerTrack \t\t%d\n"
 		"Heads \t\t\t%d\n"
-		"HiddenSectors \t\t%d\n",
+		"HiddenSectors \t\t%d\n"
+		"FAT_ONE_OFFSET \t\t%d\n"
+		"FAT_TWO_OFFSET \t\t%d\n"
+		"ROOTDIR_OFFSET \t\t%d\n"
+		"DATA_OFFSET \t\t%d\n",
 		bdptor.Oem_name,
 		bdptor.BytesPerSector,
 		bdptor.SectorsPerCluster,
@@ -85,7 +94,11 @@ void ScanBootSector()
 		bdptor.SectorsPerFAT,
 		bdptor.SectorsPerTrack,
 		bdptor.Heads,
-		bdptor.HiddenSectors);
+		bdptor.HiddenSectors,
+		FAT_ONE_OFFSET,
+		FAT_TWO_OFFSET,
+		ROOTDIR_OFFSET,
+		DATA_OFFSET);
 }
 
 /*日期*/
@@ -366,6 +379,7 @@ int fd_cd(char *dir)
 	dirno ++;
 	fatherdir[dirno] = curdir;
 	curdir = pentry;
+	free(pentry);
 	return 1;
 }
 
@@ -407,25 +421,19 @@ void ClearFatCluster(unsigned short cluster)
 */
 int WriteFat()
 {
-	if(lseek(fd,FAT_ONE_OFFSET,SEEK_SET)<0)
-	{
-		perror("lseek failed");
-		return -1;
-	}
-	if(write(fd,fatbuf,512*250)<0)
-	{
-		perror("read failed");
-		return -1;
-	}
-	if(lseek(fd,FAT_TWO_OFFSET,SEEK_SET)<0)
-	{
-		perror("lseek failed");
-		return -1;
-	}
-	if((write(fd,fatbuf,512*250))<0)
-	{
-		perror("read failed");
-		return -1;
+	int i=-1;
+	for(i = 0 ; i < bdptor.FATs ; ++i)
+	{	
+		if(lseek(fd,FAT_ONE_OFFSET+i*bdptor.SectorsPerFAT * bdptor.BytesPerSector,SEEK_SET)<0)
+		{
+			perror("lseek failed");
+			return -1;
+		}
+		if(write(fd,fatbuf,bdptor.SectorsPerFAT*bdptor.SectorsPerFAT)<0)
+		{
+			perror("read failed");
+			return -1;
+		}
 	}
 	return 1;
 }
@@ -440,7 +448,7 @@ int ReadFat()
 		perror("lseek failed");
 		return -1;
 	}
-	if(read(fd,fatbuf,512*250)<0)
+	if(read(fd,fatbuf,bdptor.SectorsPerFAT*bdptor.SectorsPerFAT)<0)
 	{
 		perror("read failed");
 		return -1;
