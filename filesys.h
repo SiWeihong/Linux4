@@ -1,7 +1,7 @@
 ﻿#ifndef FILESYS_H
 #define FILESYS_H
-#include<stddef.h>
-#define DEVNAME "/home/totoro/Desktop/Lab4/Linux4/data"    //这里要修改成虚拟u盘
+#include <stddef.h>
+#define DEVNAME "data"    //这里要修改成虚拟u盘
 /*
  * 下面这些暴力算的虽然正确，但其实不合法。
  * 我们从BootSector中可以读出整个FAT的参数。
@@ -73,7 +73,7 @@ struct Entry{
 
 //下面这些函数的作用我写到.c文件中了。
 int fd_ls();
-int fd_cd(char *dir);
+int fd_cd(char** dir, int mode, int num);
 int fd_df(char *file_name);
 int fd_cf(char *file_name,int size);
 
