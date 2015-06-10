@@ -646,15 +646,27 @@ int ScanEntry (char *entryname,struct Entry *pentry,int mode)
 	}
 }
 
-
+void copyEntry(struct Entry* curdir, struct Entry* pentry){
+	memcpy(curdir->short_name,pentry->short_name,11);
+	memcpy(curdir->long_name,pentry->long_name,26);
+	curdir->year = pentry->year;
+	curdir->month = pentry->month;
+	curdir->day = pentry->day;
+	curdir->hour = pentry->hour;
+	curdir->min = pentry->min;
+	curdir->sec = pentry->sec;
+	curdir->FirstCluster = pentry->FirstCluster;
+	curdir->size = pentry->size;
+}
 
 /*
 *参数：dir，类型：char
 *返回值：1，成功；-1，失败
 *功能：改变目录到父目录或子目录
 */
-int fd_cd(char *dir)
+int fd_cd(char **dir,int mode,int num)
 {
+	/*
 	struct Entry *pentry;
 	int ret;
 
@@ -664,7 +676,7 @@ int fd_cd(char *dir)
 	}
 	if(!strcmp(dir,"..") && curdir==NULL)
 		return 1;
-	/*返回上一级目录*/
+	//返回上一级目录
 	if(!strcmp(dir,"..") && curdir!=NULL)
 	{
 	  //fatherdir 用于保存父目录信息。
@@ -686,6 +698,98 @@ int fd_cd(char *dir)
 	fatherdir[dirno] = curdir;
 	curdir = pentry;
 	//free(pentry);
+	return 1;
+	*/
+	struct Entry *pentry,*tmp;
+	int ret,i;	
+
+	//printf("%d %d\n",mode, num);
+	//for (i=0;i<num;i++)
+	//	printf("%s\n",dir[i]);
+
+	if (mode == 0){
+		//printf("in mode 0\n");
+		for(i=0;i<num;i++){
+			
+			if(!strcmp(dir[i],"."))
+				continue;
+			if(!strcmp(dir[i],"..") && curdir==NULL){
+				printf("no father dir!\n");
+				return 1;
+			}
+			if(!strcmp(dir[i],"..") && curdir!=NULL)
+			{
+	 		 
+				curdir = fatherdir[dirno];
+				dirno--;
+				printf("traceback : %s\n",curdir->short_name);
+				continue;
+			}
+			
+			pentry = (struct Entry*)malloc(sizeof(struct Entry));
+			ret = ScanEntry(dir[i],pentry,1);		
+			
+			if(ret < 0)
+			{
+				printf("no such dir\n");
+				free(pentry);
+				return -1;
+			}
+			
+			dirno ++;
+			fatherdir[dirno] = curdir;
+			//if (curdir == NULL)
+			//	printf("now we are at : Root_dir\n");
+			//else
+			//	printf("now we are at : %s\n",curdir->short_name);
+			//printf("next time we will be at : %s\n",pentry->short_name);
+
+			curdir = (struct Entry*)malloc(sizeof(struct Entry));
+			copyEntry(curdir, pentry);
+			
+			free(pentry);
+		}
+	}
+	else{
+		//printf("in mode 1\n");
+		dirno ++;
+		fatherdir[dirno]=curdir;
+		curdir = NULL;
+		for(i=0;i<num;i++){
+			if(!strcmp(dir[i],".")){
+				printf("\".\" is not allowed in absolute path\n");
+				return 1;			
+			}
+			if(!strcmp(dir[i],".."))
+			{
+				printf("\"..\" is not allowed in absolute path\n");
+				return 1;	
+			}
+
+			pentry = (struct Entry*)malloc(sizeof(struct Entry));
+	
+			ret = ScanEntry(dir[i],pentry,1);
+			if(ret < 0)
+			{
+				printf("no such dir\n");
+				free(pentry);
+				return -1;
+			}
+			dirno ++;
+			fatherdir[dirno] = curdir;
+			//if (curdir == NULL)
+			//	printf("now we are at : Root_dir\n");
+			//else
+			//	printf("now we are at : %s\n",curdir->short_name);
+			//printf("next time we will be at : %s\n",pentry->short_name);
+
+			curdir = (struct Entry*)malloc(sizeof(struct Entry));
+			copyEntry(curdir, pentry);
+			
+			free(pentry);
+		}
+	}
+
 	return 1;
 }
 
@@ -1067,6 +1171,40 @@ void do_usage()
 		exit\t\t\texit this system\n");
 }
 
+void parse(char *dir){
+	char** toSearch;
+	int i=0,j=0,mode,p=0,k=0;
+	//printf("%s\n",dir);
+	toSearch = (char **)malloc(10*sizeof(char *));
+	
+	if (dir[0] == '/'){
+		mode = 1;
+		i++;
+	}
+	else
+		mode = 0;
+	//printf("1\n");
+	for (;i<strlen(dir);i++){
+		//printf("%c",dir[i]);
+		if (k==0){
+			//printf("2\n");
+			toSearch[p] = (char *) malloc (20 * sizeof(char));
+			//printf("%s\n",toSearch[p]);
+			//printf("3\n");
+		}	
+		if (dir[i]!='/')
+			toSearch[p][k++]=dir[i];
+		else{
+			toSearch[p][k]='\0';
+			p++;
+			k=0;
+		}
+	}
+	toSearch[p][k]='\0';
+	//for (i=0;i<=p;i++)
+	//	printf("%d : %s\n",i,toSearch[i]);
+	fd_cd(toSearch, mode, p+1);
+}
 
 int main()
 {
@@ -1091,7 +1229,8 @@ int main()
 		else if(strcmp(input, "cd") == 0)
 		{
 			scanf("%s", name);
-			fd_cd(name);
+			//fd_cd(name);
+			parse(name);
 		}
 		else if(strcmp(input, "df") == 0)
 		{
