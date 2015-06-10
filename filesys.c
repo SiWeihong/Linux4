@@ -149,15 +149,11 @@ int JGmkdir(char filename[])
 					c[30] = ((size& 0x00ff0000)>>16);
 					c[31] = ((size& 0xff000000)>>24);
 
-					/*还有很多内容并没有写入，大家请自己补充*/
 					/*而且这里还有个问题，就是对于目录表项的值为00的情况处理的不好*/
 					if(lseek(fd,offset,SEEK_SET)<0)
 						perror("lseek fd_cf failed");
 					if(write(fd,&c,DIR_ENTRY_SIZE)<0)
 						perror("write failed");
-
-
-
 
 					free(pentry);
 					if(WriteFat()<0)
@@ -231,9 +227,6 @@ int JGmkdir(char filename[])
 						perror("lseek fd_cf failed");
 					if(write(fd,&c,DIR_ENTRY_SIZE)<0)
 						perror("write failed");
-
-
-
 
 					free(pentry);
 					if(WriteFat()<0)
@@ -666,49 +659,10 @@ void copyEntry(struct Entry* curdir, struct Entry* pentry){
 */
 int fd_cd(char **dir,int mode,int num)
 {
-	/*
-	struct Entry *pentry;
-	int ret;
-
-	if(!strcmp(dir,"."))
-	{
-		return 1;
-	}
-	if(!strcmp(dir,"..") && curdir==NULL)
-		return 1;
-	//返回上一级目录
-	if(!strcmp(dir,"..") && curdir!=NULL)
-	{
-	  //fatherdir 用于保存父目录信息。
-		curdir = fatherdir[dirno];
-		dirno--; 
-		return 1;
-	}
-	//注意此处有内存泄露
-	pentry = (struct Entry*)malloc(sizeof(struct Entry));
-	
-	ret = ScanEntry(dir,pentry,1);
-	if(ret < 0)
-	{
-		printf("no such dir\n");
-		free(pentry);
-		return -1;
-	}
-	dirno ++;
-	fatherdir[dirno] = curdir;
-	curdir = pentry;
-	//free(pentry);
-	return 1;
-	*/
 	struct Entry *pentry,*tmp;
 	int ret,i;	
 
-	//printf("%d %d\n",mode, num);
-	//for (i=0;i<num;i++)
-	//	printf("%s\n",dir[i]);
-
 	if (mode == 0){
-		//printf("in mode 0\n");
 		for(i=0;i<num;i++){
 			
 			if(!strcmp(dir[i],"."))
@@ -738,11 +692,6 @@ int fd_cd(char **dir,int mode,int num)
 			
 			dirno ++;
 			fatherdir[dirno] = curdir;
-			//if (curdir == NULL)
-			//	printf("now we are at : Root_dir\n");
-			//else
-			//	printf("now we are at : %s\n",curdir->short_name);
-			//printf("next time we will be at : %s\n",pentry->short_name);
 
 			curdir = (struct Entry*)malloc(sizeof(struct Entry));
 			copyEntry(curdir, pentry);
@@ -751,7 +700,6 @@ int fd_cd(char **dir,int mode,int num)
 		}
 	}
 	else{
-		//printf("in mode 1\n");
 		dirno ++;
 		fatherdir[dirno]=curdir;
 		curdir = NULL;
@@ -777,11 +725,6 @@ int fd_cd(char **dir,int mode,int num)
 			}
 			dirno ++;
 			fatherdir[dirno] = curdir;
-			//if (curdir == NULL)
-			//	printf("now we are at : Root_dir\n");
-			//else
-			//	printf("now we are at : %s\n",curdir->short_name);
-			//printf("next time we will be at : %s\n",pentry->short_name);
 
 			curdir = (struct Entry*)malloc(sizeof(struct Entry));
 			copyEntry(curdir, pentry);
@@ -1060,9 +1003,6 @@ int fd_cf(char *filename,int size)
 					if(write(fd,&c,DIR_ENTRY_SIZE)<0)
 						perror("write failed");
 
-
-
-
 					free(pentry);
 					if(WriteFat()<0)
 						exit(1);
@@ -1136,16 +1076,12 @@ int fd_cf(char *filename,int size)
 					if(write(fd,&c,DIR_ENTRY_SIZE)<0)
 						perror("write failed");
 
-
-
-
 					free(pentry);
 					if(WriteFat()<0)
 						exit(1);
 
 					return 1;
 				}
-
 			}
 		}
 	}
@@ -1174,7 +1110,6 @@ void do_usage()
 void parse(char *dir){
 	char** toSearch;
 	int i=0,j=0,mode,p=0,k=0;
-	//printf("%s\n",dir);
 	toSearch = (char **)malloc(10*sizeof(char *));
 	
 	if (dir[0] == '/'){
@@ -1183,14 +1118,9 @@ void parse(char *dir){
 	}
 	else
 		mode = 0;
-	//printf("1\n");
 	for (;i<strlen(dir);i++){
-		//printf("%c",dir[i]);
 		if (k==0){
-			//printf("2\n");
 			toSearch[p] = (char *) malloc (20 * sizeof(char));
-			//printf("%s\n",toSearch[p]);
-			//printf("3\n");
 		}	
 		if (dir[i]!='/')
 			toSearch[p][k++]=dir[i];
@@ -1201,8 +1131,6 @@ void parse(char *dir){
 		}
 	}
 	toSearch[p][k]='\0';
-	//for (i=0;i<=p;i++)
-	//	printf("%d : %s\n",i,toSearch[i]);
 	fd_cd(toSearch, mode, p+1);
 }
 
